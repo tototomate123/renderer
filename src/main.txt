@@ -1,0 +1,98 @@
+extern crate glium; //v 34.0.0
+extern crate winit;
+
+use glium::{implement_vertex, Surface};
+use winit::{event::{Event, WindowEvent}, event_loop::{ControlFlow, EventLoop}};
+use std::process::ExitCode;
+
+#[derive(Copy, Clone)]
+struct Vertex {
+    position: [f32; 2],
+}
+implement_vertex!(Vertex, position);
+
+fn main() -> ExitCode {
+    // 1. The **winit::EventLoop** for handling events.
+
+    let event_loop = EventLoop::new().unwrap();
+    let (window, display) = glium::backend::glutin::SimpleWindowBuilder::new().build(&event_loop);
+
+
+    let vertex_buffer = glium::VertexBuffer::new(&display, &[
+        Vertex { position: [-0.5, -0.5] }, // bottom left
+        Vertex { position: [ 0.0,  0.5] }, // top middle
+        Vertex { position: [ 0.5, -0.25] }, // bottom right
+    ]).unwrap();
+
+    let indicies = glium::IndexBuffer::new(&display, glium::index::PrimitiveType::TrianglesList, &[0u16, 1, 2]).unwrap();
+
+
+    event_loop.set_control_flow(ControlFlow::Poll);
+
+    let _ = event_loop.run(move |event, elwt| {
+    match event {
+        Event::WindowEvent {
+            event: WindowEvent::CloseRequested,
+            ..
+        } => {
+            println!("The close button was pressed; stopping");
+            elwt.exit();
+        }
+        Event::AboutToWait => { 
+            // Application update code.
+
+            // Queue a RedrawRequested event.
+            //
+            // You only need to call this if you've determined that you need to redraw in
+            // applications which do not always need to. Applications that redraw continuously
+            // can render here instead. We're in the fuck the OS update loop, we have to tell the OS to draw our stuff.
+            //
+            let mut frame = display.draw();
+            
+            //frame.clear_color(0.0, 0.0, 0.0, 1.0);
+            frame.draw(&vertex_buffer, &indicies, &glium::Program::from_source(
+                &display,
+                VERTEX_SHADER_SRC,
+                FRAGMENT_SHADER_SRC,
+                None
+                ).unwrap(), &glium::uniforms::EmptyUniforms, &Default::default()).unwrap();
+
+            let _ = frame.finish();
+
+            
+            window.request_redraw();
+        },
+        _ => ()
+    }
+});
+    ExitCode::SUCCESS
+}
+
+
+
+fn draw() {
+    
+}
+
+
+
+
+const VERTEX_SHADER_SRC: &str = r#"
+    #version 140
+
+    in vec2 position;
+
+    void main() {
+        gl_Position = vec4(position, 0.0, 1.0);
+    }
+"#;
+
+const FRAGMENT_SHADER_SRC: &str = r#"
+    #version 140
+
+    out vec4 color;
+
+    void main() {
+        color = vec4(1.0, 0.0, 0.0, 1.0);
+    }
+"#;
